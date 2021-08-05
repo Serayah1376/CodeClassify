@@ -16,11 +16,12 @@ class CodeDataset(torch_data.Dataset):
         self.len=len(self.codes)  #记录样本的长度
         self.labels=reader.loc[:,'label'].values #标签列表
         self.label_list=sorted(reader.loc[:,'label'].unique()) #去重排序后的标签列表
+        self.label_dict=self.getLabelDict()
         self.label_num=len(self.label_list)   #不同标签的个数  最终分类的总类别数
     
     #根据索引获取code和对应的label
     def __getitem__(self,index):
-        return self.codes[index],self.labels[index]
+        return self.codes[index],self.label_dict[self.labels[index]]
     
     #返回数据集的长度
     def __len__(self):
@@ -33,4 +34,28 @@ class CodeDataset(torch_data.Dataset):
     #获取标签种类数
     def getLabelNum(self):
         return self.label_num
+     
+    #获得标签对应的分类序号
+    def getLabelDict(self):
+        label_dict=dict()
+        for idx,Label in enumerate(self.label_list,0):
+            label_dict[Label]=idx
+        return label_dict
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         

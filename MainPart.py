@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """
 Created on Mon Aug  2 18:28:45 2021
@@ -16,12 +15,13 @@ from torch.utils.data import DataLoader
 import Preparing_Data as PD
 import RNNClassifier as RNN
 #parameters
-HIDDEN_SIZE=100
-BATCH_SIZE=8
-N_LAYER=2
+HIDDEN_SIZE=64 #准备改为256
+BATCH_SIZE=2 #准备试一下1
+N_LAYER=1  #准备试一下2
 N_EPOCHS=100
 N_CHARS=128 #使用ASCII表进行字符到数字的映射
 USE_GPU=True #使用GPU
+gamma=0.9
 
 #数据的准备
 trainset=PD.CodeDataset(is_train_set=True)
@@ -49,13 +49,14 @@ def trainModel():
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        scheduler.step()
         
         total_loss+=loss.item()
         if i%10==0:
             print(f'[{time_since(start)}] Epoch {epoch}',end='')
             print(f'[{i * len(inputs)}/{len(trainset)}]',end='')
             print(f'loss={total_loss/(i*len(inputs))}')
-        return total_loss
+    return total_loss  #本次测试中忘了加
 
 def testModel():
     correct=0
@@ -67,10 +68,11 @@ def testModel():
             output=classifier.forward(inputs)
             pred=output.max(dim=1,keepdim=True)[1]
             correct+=pred.eq(target.view_as(pred)).sum().item()
-        
+           
         percent='%.2f' % (100 * correct /total)
         print(f'Test set: Accuracy {correct}/{total} {percent} %')
-    return correct/total
+        
+    return correct / total  #在本次测试中忘了加上了
    
 
 if __name__=='__main__':
@@ -79,7 +81,7 @@ if __name__=='__main__':
     N_CHARS：整个字母表元素个数
     HIDDEN_SIZE：隐层维度
     N_LABEL：有多少个分类
-    N_LAYER：用几层的GPU
+    N_LAYER：用几层
     '''
     classifier=RNN.RNNClassifier(N_CHARS,HIDDEN_SIZE,N_LABEL,n_layers=N_LAYER)
     #是否用GPU
@@ -90,14 +92,15 @@ if __name__=='__main__':
     #交叉熵损失
     criterion=torch.nn.CrossEntropyLoss()
     #优化器
-    optimizer=torch.optim.Adam(classifier.parameters(),lr=0.01)
-    
+    optimizer=torch.optim.Adam(classifier.parameters(),lr=0.02)
+    scheduler=torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma, last_epoch=-1)
     #看训练的时间有多长
     start=time.time()
     print('Training for %d epochs...' % N_EPOCHS)
     #存放训练的结果
     acc_list=[]
     for epoch in range(1,N_EPOCHS+1):
+        #print('%d'%epoch,':',end='')
         trainModel()
         acc=testModel()
         acc_list.append(acc) 
@@ -110,60 +113,3 @@ if __name__=='__main__':
     plt.ylabel('Accuracy')
     plt.grid()
     plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
