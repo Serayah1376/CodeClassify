@@ -6,16 +6,24 @@ Created on Mon Aug  2 22:00:58 2021
 """
 import torch
 
+
 USE_GPU=True
 
 class RNNClassifier(torch.nn.Module):
+    '''
+    input_size:N_CHARS
+    hidden_size:HIDDEN_SIZE
+    output_size:N_LABEL
+    n_layers=N_LAYER
+    '''
     def __init__(self,input_size,hidden_size,output_size,n_layers=1,bidirectional=True):
         super(RNNClassifier,self).__init__()
         self.hidden_size=hidden_size
         self.n_layers=n_layers
         self.n_directions=2 if bidirectional else 1 #双向2 单向1
         
-        self.embedding=torch.nn.Embedding(input_size,hidden_size)
+        #embedding层输出维度hidden_size即为gru层的输入维度
+        self.embedding=torch.nn.Embedding(input_size,hidden_size)  
         self.gru=torch.nn.GRU(hidden_size,hidden_size,n_layers,bidirectional=bidirectional)
         
         self.fc=torch.nn.Linear(hidden_size*self.n_directions, output_size)
@@ -27,7 +35,7 @@ class RNNClassifier(torch.nn.Module):
     
     
     #seq_lengths为该样本长度
-    def forward(self,input,seq_lengths):
+    def forward(self,input):
         #input shape: B x S -> S x B
         input = input.t()  #做一个转置
         batch_size=input.size(1)
@@ -39,10 +47,10 @@ class RNNClassifier(torch.nn.Module):
         '''
         要求input中的样本是按照长度是有序的
         '''
-        # 将一个 填充过的变长序列 压紧
-        gru_input=torch.nn.utils.rnn.pack_padded_sequence(embedding,seq_lengths)#???????一定要在cpu上吗
+        # 将一个 填充过的变长序列 压紧  可以不用
+        #gru_input=torch.nn.utils.rnn.pack_padded_sequence(embedding,seq_lengths)
         
-        output,hidden=self.gru(gru_input,hidden) #如果是双向的话hidden里就有两个对象
+        output,hidden=self.gru(embedding,hidden) #如果是双向的话hidden里就有两个对象
         if self.n_directions==2:
             hidden_cat=torch.cat([hidden[-1],hidden[-2]],dim=1)#如果两层的话就拼接起来
         else:
@@ -52,7 +60,7 @@ class RNNClassifier(torch.nn.Module):
         
     #将codes和labels转换为tensor
     def make_tensors(self,codes,labels):
-        sequences_and_lengths=[self.code2list(code) for code in codes]
+        sequences_and_lengths=[self.code2list(code) for code in codes] 
         #分别将字符列表和长度取出来
         code_sequences=[s1[0] for s1 in sequences_and_lengths]
         seq_lengths=torch.LongTensor([s1[1] for s1 in sequences_and_lengths])
@@ -64,13 +72,7 @@ class RNNClassifier(torch.nn.Module):
         for idx,(seq,seq_len) in enumerate(zip(code_sequences,seq_lengths),0):
             seq_tensor[idx,:seq_len]=torch.LongTensor(seq)
             
-        #按照序列长度来排序
-        seq_lengths,perm_idx=seq_lengths.sort(dim=0,descending=True)
-        seq_tensor=seq_tensor[perm_idx]
-        labels=labels[perm_idx]
-        
         return self.create_tensor(seq_tensor),\
-               self.create_tensor(seq_lengths),\
                self.create_tensor(labels)
     
     #将代码转化为字符串列表

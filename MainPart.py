@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Created on Mon Aug  2 18:28:45 2021
@@ -16,7 +17,7 @@ import Preparing_Data as PD
 import RNNClassifier as RNN
 #parameters
 HIDDEN_SIZE=100
-BATCH_SIZE=128
+BATCH_SIZE=8
 N_LAYER=2
 N_EPOCHS=100
 N_CHARS=128 #使用ASCII表进行字符到数字的映射
@@ -42,8 +43,8 @@ def time_since(since):
 def trainModel():
     total_loss=0
     for i,(codes,labels) in enumerate(trainloader,1):
-        inputs,seq_lengths,target=classifier.make_tensors(codes,labels)
-        output=classifier.forward(inputs,seq_lengths)
+        inputs,target=classifier.make_tensors(codes,labels)
+        output=classifier.forward(inputs)
         loss=criterion(output,target)
         optimizer.zero_grad()
         loss.backward()
@@ -62,8 +63,8 @@ def testModel():
     print('evaluating trained model...')
     with torch.no_grad():#测试不需要求梯度
         for i,(codes,labels) in enumerate(testloader,1):
-            inputs,seq_lengths,target=classifier.make_tensors(codes,labels)
-            output=classifier.forward(inputs,seq_lengths)
+            inputs,target=classifier.make_tensors(codes,labels)
+            output=classifier.forward(inputs)
             pred=output.max(dim=1,keepdim=True)[1]
             correct+=pred.eq(target.view_as(pred)).sum().item()
         
@@ -80,7 +81,7 @@ if __name__=='__main__':
     N_LABEL：有多少个分类
     N_LAYER：用几层的GPU
     '''
-    classifier=RNN.RNNClassifier(N_CHARS,HIDDEN_SIZE,N_LABEL,N_LAYER)
+    classifier=RNN.RNNClassifier(N_CHARS,HIDDEN_SIZE,N_LABEL,n_layers=N_LAYER)
     #是否用GPU
     if USE_GPU:
         device=torch.device('cuda:0')
@@ -109,3 +110,60 @@ if __name__=='__main__':
     plt.ylabel('Accuracy')
     plt.grid()
     plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
