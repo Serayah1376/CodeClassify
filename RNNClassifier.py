@@ -26,6 +26,7 @@ class RNNClassifier(torch.nn.Module):
         self.embedding=torch.nn.Embedding(input_size,hidden_size)  
         self.gru=torch.nn.GRU(hidden_size,hidden_size,n_layers,bidirectional=bidirectional)
         
+        print('GRU层输出到线性层的维度：%d' % hidden_size*self.n_directions) 
         self.fc=torch.nn.Linear(hidden_size*self.n_directions, output_size)
        
     def _init_hidden(self,batch_size):

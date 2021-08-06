@@ -15,9 +15,9 @@ from torch.utils.data import DataLoader
 import Preparing_Data as PD
 import RNNClassifier as RNN
 #parameters
-HIDDEN_SIZE=64 #准备改为256
-BATCH_SIZE=2 #准备试一下1
-N_LAYER=1  #准备试一下2
+HIDDEN_SIZE=256 
+BATCH_SIZE=2 #4的话内存不够
+N_LAYER=2  
 N_EPOCHS=100
 N_CHARS=128 #使用ASCII表进行字符到数字的映射
 USE_GPU=True #使用GPU
@@ -56,23 +56,31 @@ def trainModel():
             print(f'[{time_since(start)}] Epoch {epoch}',end='')
             print(f'[{i * len(inputs)}/{len(trainset)}]',end='')
             print(f'loss={total_loss/(i*len(inputs))}')
-    return total_loss  #本次测试中忘了加
+    return total_loss  
 
 def testModel():
     correct=0
     total=len(testset)
+    test_total_loss=0
     print('evaluating trained model...')
     with torch.no_grad():#测试不需要求梯度
         for i,(codes,labels) in enumerate(testloader,1):
             inputs,target=classifier.make_tensors(codes,labels)
             output=classifier.forward(inputs)
+            test_loss=criterion(output,target)
             pred=output.max(dim=1,keepdim=True)[1]
             correct+=pred.eq(target.view_as(pred)).sum().item()
+            
+            test_total_loss+=test_loss.item()
+            if i%10==0:
+                print(f'[{time_since(start)}] Epoch {epoch}',end='')
+                print(f'[{i * len(inputs)}/{len(testset)}]',end='')
+                print(f'test_loss={test_total_loss/(i*len(inputs))}')
            
         percent='%.2f' % (100 * correct /total)
         print(f'Test set: Accuracy {correct}/{total} {percent} %')
         
-    return correct / total  #在本次测试中忘了加上了
+    return correct / total  
    
 
 if __name__=='__main__':
