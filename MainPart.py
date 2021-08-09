@@ -19,7 +19,7 @@ HIDDEN_SIZE=256
 BATCH_SIZE=2 #4的话内存不够
 N_LAYER=2  
 N_EPOCHS=100
-N_CHARS=128 #使用ASCII表进行字符到数字的映射
+N_CHARS=256 #使用ASCII表进行字符到数字的映射
 USE_GPU=True #使用GPU
 gamma=0.9
 

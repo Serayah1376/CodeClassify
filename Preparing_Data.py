@@ -5,7 +5,6 @@ Created on Mon Aug  2 16:27:18 2021
 @author: 10983
 """
 import pandas as pd
-
 import torch.utils.data as torch_data
 
 
@@ -19,7 +18,8 @@ class CodeDataset(torch_data.Dataset):
         
         filename = 'C:/Users/10983/py入门/GRUClassifier/train.pb' if is_train_set else 'C:/Users/10983/py入门/GRUClassifier/valid.pb'
         reader = pd.read_pickle(filename)
-        self.codes = reader.loc[:, 'code'].values  # 将代码列表放入codes中
+        self.codes_tmp = reader.loc[:, 'code'].values # 将代码列表放入codes中
+        self.codes=self.cleanData(self.codes_tmp)
         self.len = len(self.codes)  # 记录样本的长度
         self.labels = reader.loc[:, 'label'].values  # 标签列表
         self.label_list = sorted(reader.loc[:, 'label'].unique())  # 去重排序后的标签列表
@@ -49,3 +49,33 @@ class CodeDataset(torch_data.Dataset):
         for idx, Label in enumerate(self.train_label_list, 0):
             label_dict[Label] = idx
         return label_dict
+    
+    #将'\n' '\t'以及无用空格全部删去
+    def cleanData(self,code1):
+        r=''
+        i=0
+        codes=[]
+        while i<len(code1):
+            s=code1[i].split("\n")
+            r=''
+            for ss in s:
+                r+=ss.strip()
+            codes.append(r)
+            i+=1
+        return codes
+    
+
+
+     
+   
+
+
+
+
+
+
+
+
+
+
+
