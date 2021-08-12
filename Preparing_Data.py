@@ -6,7 +6,9 @@ Created on Mon Aug  2 16:27:18 2021
 """
 import pandas as pd
 import torch.utils.data as torch_data
-
+from nltk import word_tokenize#以空格形式进行分词
+import torch
+USE_GPU=True
 
 class CodeDataset(torch_data.Dataset):
     def __init__(self, is_train_set=True):
@@ -23,9 +25,10 @@ class CodeDataset(torch_data.Dataset):
         self.len = len(self.codes)  # 记录样本的长度
         self.labels = reader.loc[:, 'label'].values  # 标签列表
         self.label_list = sorted(reader.loc[:, 'label'].unique())  # 去重排序后的标签列表
-        self.label_dict = self.getLabelDict()
+        self.label_dict = self.getLabelDict()  
         self.label_num = len(self.label_list)  # 不同标签的个数  最终分类的总类别数
-        
+        self.word2index=self.codeDic()
+        self.dicnum=len(self.word2index)
 
     # 根据索引获取code和对应的label
     def __getitem__(self, index):
@@ -50,7 +53,20 @@ class CodeDataset(torch_data.Dataset):
             label_dict[Label] = idx
         return label_dict
     
+    #生成词和下标数字对应的字典 {'int':0,'return':1,……}
+    def codeDic(self):
+        ss=set()
+        for s in self.codes:
+            ss.update(set(s))
+        #转化为列表并排序使得符号和索引一一对应
+        ss=list(ss)
+        ss.sort()
+        #词->索引
+        word2index={word:index for index,word in enumerate(ss)}
+        return word2index
+      
     #将'\n' '\t'以及无用空格全部删去
+    #返回分词列表列表
     def cleanData(self,code1):
         r=''
         i=0
@@ -60,16 +76,27 @@ class CodeDataset(torch_data.Dataset):
             r=''
             for ss in s:
                 r+=ss.strip()
-            codes.append(r)
+            sentences=word_tokenize(r)
+            interpunctuations = [',', '.', ':', ';', '(', ')', '[', ']','{','}','main']
+            cutwords=[word for word in sentences if word not in interpunctuations]
+            codes.append(cutwords)
             i+=1
         return codes
-    
 
+    #得到代码分词后的最大长度
+    def getMaxlen(self,code1):
+        maxlen=0
+        for list in code1:
+            if len(list)>maxlen:
+                maxlen=len(list)
+        return maxlen
 
-     
-   
-
-
+     #判断是否放到显卡上
+    def create_tensor(self,t):
+        if USE_GPU:
+            device=torch.device('cuda:0')
+            t=t.to(device)
+        return t 
 
 
 

@@ -15,22 +15,55 @@ from torch.utils.data import DataLoader
 import Preparing_Data as PD
 import RNNClassifier as RNN
 #parameters
-HIDDEN_SIZE=256 
-BATCH_SIZE=2 #4的话内存不够
+HIDDEN_SIZE=256
+BATCH_SIZE=4 
 N_LAYER=2  
 N_EPOCHS=100
-N_CHARS=256 #使用ASCII表进行字符到数字的映射
 USE_GPU=True #使用GPU
-gamma=0.9
+gamma=0.1
+
+trainset=PD.CodeDataset(is_train_set=True)
+testset =PD.CodeDataset(is_train_set=False)
+
+#将分词后的codes进行padding：取每个batch的列表中的最大长度作为填充目标长度
+def make_tensors(batch,is_train=True):
+    codes=[item[0] for item in batch]
+    labels=[item[1] for item in batch]
+    list2=[]
+    maxlen=trainset.getMaxlen(codes)
+    for s in codes:
+        if is_train:
+            list1=[trainset.word2index[word] for word in s]
+        else:
+            list1=[testset.word2index[word] for word in s]
+        i=0
+        #padding:填充0是长度相等
+        need_add=maxlen-len(list1)
+        while i<need_add:
+            list1.append(0)
+            i+=1
+        list2.append(list1)
+    #将代码向量转化为张量
+    seq_tensor=torch.LongTensor(list2)
+    labels=torch.LongTensor(labels)     
+    return trainset.create_tensor(seq_tensor),\
+          trainset.create_tensor(labels)
 
 #数据的准备
+#训练集
 trainset=PD.CodeDataset(is_train_set=True)
-trainloader=DataLoader(trainset,batch_size=BATCH_SIZE,shuffle=True)
-testset =PD.CodeDataset(is_train_set=False)
-testloader=DataLoader(testset,batch_size=BATCH_SIZE,shuffle=False)
+trainloader=DataLoader(trainset,batch_size=BATCH_SIZE,shuffle=True,collate_fn=make_tensors)
+#验证集
+validset =PD.CodeDataset(is_train_set=False)
+validloader=DataLoader(testset,batch_size=BATCH_SIZE,shuffle=False,collate_fn=lambda x: make_tensors(x, False))
 
-N_LABEL=trainset.getLabelNum() #得到标签的种类数，决定模型最终输出维度的大小
-        
+#得到标签的种类数，决定模型最终输出维度的大小
+#训练集中的类别是最全的，故使用训练集的label_num
+N_LABEL=trainset.getLabelNum() 
+#词典中词的个数，在使用词嵌入Embedding的时候传入的参数
+N_WORDS_train=trainset.dicnum 
+  
+#N_WORDS_test=testset.dicnum   
 #计算运行的时间，转换分钟和秒的形式
 def time_since(since):
     s=time.time()-since
@@ -42,37 +75,35 @@ def time_since(since):
 
 def trainModel():
     total_loss=0
-    for i,(codes,labels) in enumerate(trainloader,1):
-        inputs,target=classifier.make_tensors(codes,labels)
+    for i,(inputs,target) in enumerate(trainloader,1):
         output=classifier.forward(inputs)
         loss=criterion(output,target)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         scheduler.step()
-        
+    
         total_loss+=loss.item()
-        if i%10==0:
+        if i%100==0:
             print(f'[{time_since(start)}] Epoch {epoch}',end='')
             print(f'[{i * len(inputs)}/{len(trainset)}]',end='')
             print(f'loss={total_loss/(i*len(inputs))}')
     return total_loss  
 
-def testModel():
+def validModel():
     correct=0
     total=len(testset)
     test_total_loss=0
     print('evaluating trained model...')
     with torch.no_grad():#测试不需要求梯度
-        for i,(codes,labels) in enumerate(testloader,1):
-            inputs,target=classifier.make_tensors(codes,labels)
+        for i,(inputs,target) in enumerate(validloader,1):
             output=classifier.forward(inputs)
             test_loss=criterion(output,target)
             pred=output.max(dim=1,keepdim=True)[1]
             correct+=pred.eq(target.view_as(pred)).sum().item()
             
             test_total_loss+=test_loss.item()
-            if i%10==0:
+            if i%100==0:
                 print(f'[{time_since(start)}] Epoch {epoch}',end='')
                 print(f'[{i * len(inputs)}/{len(testset)}]',end='')
                 print(f'test_loss={test_total_loss/(i*len(inputs))}')
@@ -81,7 +112,7 @@ def testModel():
         print(f'Test set: Accuracy {correct}/{total} {percent} %')
         
     return correct / total  
-   
+ 
 
 if __name__=='__main__':
     #自己定义的模型
@@ -91,7 +122,7 @@ if __name__=='__main__':
     N_LABEL：有多少个分类
     N_LAYER：用几层
     '''
-    classifier=RNN.RNNClassifier(N_CHARS,HIDDEN_SIZE,N_LABEL,n_layers=N_LAYER)
+    classifier=RNN.RNNClassifier(N_WORDS_train,HIDDEN_SIZE,N_LABEL,n_layers=N_LAYER)
     #是否用GPU
     if USE_GPU:
         device=torch.device('cuda:0')
@@ -100,7 +131,7 @@ if __name__=='__main__':
     #交叉熵损失
     criterion=torch.nn.CrossEntropyLoss()
     #优化器
-    optimizer=torch.optim.Adam(classifier.parameters(),lr=0.02)
+    optimizer=torch.optim.Adam(classifier.parameters(),lr=0.1)
     scheduler=torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma, last_epoch=-1)
     #看训练的时间有多长
     start=time.time()
@@ -109,8 +140,8 @@ if __name__=='__main__':
     acc_list=[]
     for epoch in range(1,N_EPOCHS+1):
         #print('%d'%epoch,':',end='')
-        trainModel()
-        acc=testModel()
+        trainModel()  #############
+        acc=validModel()
         acc_list.append(acc) 
     
     #绘图部分看准确率的变化
