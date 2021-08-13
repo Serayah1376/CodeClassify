@@ -5,6 +5,8 @@ Created on Mon Aug  2 22:00:58 2021
 @author: 10983
 """
 import torch
+import time
+import math
 
 USE_GPU=True
 
@@ -17,24 +19,18 @@ class RNNClassifier(torch.nn.Module):
     '''
     def __init__(self,input_size,hidden_size,output_size,n_layers=1,bidirectional=False):
         super(RNNClassifier,self).__init__()
+        self.input_size=input_size
         self.hidden_size=hidden_size
+        self.output_size=output_size
         self.n_layers=n_layers
         self.n_directions=2 if bidirectional else 1 #双向2 单向1
-        
-        #embedding层输出维度hidden_size即为gru层的输入维度
-        self.embedding=torch.nn.Embedding(input_size,hidden_size)  
-        self.gru=torch.nn.GRU(hidden_size,hidden_size,n_layers,bidirectional=bidirectional)
-        
-        print('GRU层输出到线性层的维度：%d' % hidden_size*self.n_directions)
-        self.fc1=torch.nn.Linear(hidden_size*self.n_directions, 160)
-        self.fc2=torch.nn.Linear(160,104)
+        self.bidirectional=bidirectional
         
         
     def _init_hidden(self,batch_size):
         #初始化全零隐层
         hidden=torch.zeros(self.n_layers*self.n_directions,batch_size,self.hidden_size)
         return self.create_tensor(hidden)  #create_tensor的作用就是判断是否将数据放在显卡上
-    
     
     #seq_lengths为该样本长度
     def forward(self,input):
@@ -61,13 +57,23 @@ class RNNClassifier(torch.nn.Module):
         fc_output=self.fc2(fc1_output)
         return fc_output  #[4,104]
     
-         #判断是否放到显卡上
+    #模型创建
+    def build(self):
+        #embedding层输出维度hidden_size即为gru层的输入维度
+        self.embedding=torch.nn.Embedding(self.input_size,self.hidden_size) 
+        #GRU层
+        self.gru=torch.nn.GRU(self.hidden_size,self.hidden_size,self.n_layers,bidirectional=self.bidirectional)
+        #线性层
+        self.fc1=torch.nn.Linear(self.hidden_size*self.n_directions, 160)
+        self.fc2=torch.nn.Linear(160,104)
+
+    #判断是否放到显卡上
     def create_tensor(self,t):
         if USE_GPU:
             device=torch.device('cuda:0')
             t=t.to(device)
         return t 
-
+    
 
             
             
