@@ -5,10 +5,10 @@ Created on Mon Aug  2 22:00:58 2021
 @author: 10983
 """
 import torch
-import time
-import math
 
 USE_GPU=True
+
+#torch.cuda.manual_seed_all(123)#设置随机数种子，使每一次初始化数值都相同
 
 class RNNClassifier(torch.nn.Module):
     '''
@@ -35,6 +35,7 @@ class RNNClassifier(torch.nn.Module):
     #seq_lengths为该样本长度
     def forward(self,input):
         #input shape: B x S -> S x B
+        #print('*****inputsize=',input.size()) [16,229]
         input = input.t()  #做一个转置
         batch_size=input.size(1)
         

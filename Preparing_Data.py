@@ -10,8 +10,11 @@ from nltk import word_tokenize#以空格形式进行分词
 import torch
 USE_GPU=True
 
+#torch.cuda.manual_seed_all(123)#设置随机数种子，使每一次初始化数值都相同
+
 class CodeDataset(torch_data.Dataset):
     def __init__(self, is_train_set=True):
+        super().__init__()
         #定义label和0-103对应的字典（训练集中一共有104种标签）
         train_file = 'C:/Users/10983/py入门/GRUClassifier/train.pb'
         self.train_reader = pd.read_pickle(train_file)
@@ -24,11 +27,12 @@ class CodeDataset(torch_data.Dataset):
         self.codes=self.cleanData(self.codes_tmp)
         self.len = len(self.codes)  # 记录样本的长度
         self.labels = reader.loc[:, 'label'].values  # 标签列表
-        self.label_list = sorted(reader.loc[:, 'label'].unique())  # 去重排序后的标签列表
+        #self.label_list = sorted(reader.loc[:, 'label'].unique())  # 去重排序后的标签列表
         self.label_dict = self.getLabelDict()  
-        self.label_num = len(self.label_list)  # 不同标签的个数  最终分类的总类别数
-        self.word2index=self.codeDic()
-        self.dicnum=len(self.word2index)
+        self.label_num = len(self.train_label_list)  # 不同标签的个数  最终分类的总类别数
+        if is_train_set:
+            self.word2index=self.codeDic()
+            self.dicnum=len(self.word2index)
 
     # 根据索引获取code和对应的label
     def __getitem__(self, index):
@@ -62,7 +66,16 @@ class CodeDataset(torch_data.Dataset):
         ss=list(ss)
         ss.sort()
         #词->索引
-        word2index={word:index for index,word in enumerate(ss)}
+        #index=0位置空出来，0对应在字典中找不到的字符串
+        word2index={}
+        #词表中未出现的单词
+        word2index["<unk>"]=0
+        #句子添加的padding
+        word2index["<pad>"]=1
+        j=2
+        for word in ss:
+            word2index[word]=j
+            j+=1      
         return word2index
       
     #将'\n' '\t'以及无用空格全部删去
@@ -92,12 +105,22 @@ class CodeDataset(torch_data.Dataset):
         return maxlen
 
      #判断是否放到显卡上
-    def create_tensor(self,t):
+    def create_tensor(self,tt):
         if USE_GPU:
             device=torch.device('cuda:0')
-            t=t.to(device)
-        return t 
+            tt=tt.to(device)
+        return tt 
 
+'''
+if __name__=='__main__':
+    CD=CodeDataset()
+    print(CD.dicnum)
+    print(CD.label_num)
+'''
+
+    
+
+    
 
 
 
