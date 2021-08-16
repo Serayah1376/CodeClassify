@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Aug  2 16:27:18 2021
-
 @author: 10983
 """
 import pandas as pd
@@ -10,7 +9,6 @@ from nltk import word_tokenize#以空格形式进行分词
 import torch
 USE_GPU=True
 
-#torch.cuda.manual_seed_all(123)#设置随机数种子，使每一次初始化数值都相同
 
 class CodeDataset(torch_data.Dataset):
     def __init__(self, is_train_set=True):
@@ -117,15 +115,3 @@ if __name__=='__main__':
     print(CD.dicnum)
     print(CD.label_num)
 '''
-
-    
-
-    
-
-
-
-
-
-
-
-

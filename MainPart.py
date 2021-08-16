@@ -10,12 +10,11 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.data import DataLoader
-
-torch.cuda.manual_seed_all(123)#设置随机数种子，使每一次初始化数值都相同
-
 from Preparing_Data import CodeDataset
 import RNNClassifier as RNN
-import train
+from train import Train_Valid
+
+torch.cuda.manual_seed_all(123)#设置随机数种子，使每一次初始化数值都相同
 
 #parameters
 HIDDEN_SIZE=256
@@ -55,16 +54,7 @@ def make_tensors(batch):
     labels=torch.LongTensor(labels)     
     return trainset.create_tensor(seq_tensor),\
           trainset.create_tensor(labels)
-  
-#N_WORDS_test=testset.dicnum   
-
- 
-'''
-N_CHARS：整个字母表元素个数
-HIDDEN_SIZE：隐层维度
-N_LABEL：有多少个分类
-N_LAYER：用几层
-'''
+   
 #数据的准备
 #训练集
 train_loader=DataLoader(trainset,batch_size=BATCH_SIZE,shuffle=False,collate_fn=make_tensors)
@@ -77,7 +67,12 @@ N_LABEL=trainset.getLabelNum()
 #词典中词的个数，在使用词嵌入Embedding的时候传入的参数
 N_WORDS_train=trainset.dicnum
 
-
+'''
+N_CHARS：整个字母表元素个数
+HIDDEN_SIZE：隐层维度
+N_LABEL：有多少个分类
+N_LAYER：用几层
+'''
 classifier=RNN.RNNClassifier(N_WORDS_train,HIDDEN_SIZE,N_LABEL,n_layers=N_LAYER)
 classifier.build()
 #是否用GPU
@@ -85,27 +80,27 @@ if USE_GPU:
     device=torch.device('cuda:0')
     classifier.to(device)
     
-#交叉熵损失
-#criterion=torch.nn.CrossEntropyLoss()
-#优化器
-#optimizer=torch.optim.Adam(classifier.parameters(),lr=0.1)
-#scheduler=torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma, last_epoch=-1)
 #看训练的时间有多长
 start=time.time()
 print('Training for %d epochs...' % N_EPOCHS)
 
-#存放训练的结果
-acc_list=[]
-mini_loss=100
-acc_list=train.train(classifier,mini_loss,train_loader,valid_loader,start,trainset,validset)
+
+train_valid=Train_Valid(classifier, train_loader, valid_loader, start, trainset, validset)
+acc_list,loss_list=train_valid.train()
 
 #绘图部分看准确率的变化
 epoch=np.arange(1,len(acc_list)+1,1)
 acc_list=np.array(acc_list)
 plt.plot(epoch,acc_list)
 plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
+plt.ylabel('Valid_Accuracy')
 plt.grid()
 plt.show()
 
+loss_list=np.array(loss_list)
+plt.plot(epoch,loss_list)
+plt.xlabel('Epoch')
+plt.ylabel('Train_loss')
+plt.grid()
+plt.show()
 

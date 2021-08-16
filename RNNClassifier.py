@@ -8,7 +8,6 @@ import torch
 
 USE_GPU=True
 
-#torch.cuda.manual_seed_all(123)#设置随机数种子，使每一次初始化数值都相同
 
 class RNNClassifier(torch.nn.Module):
     '''
