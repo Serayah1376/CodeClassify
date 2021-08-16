@@ -11,7 +11,7 @@ USE_GPU=True
 
 
 class CodeDataset(torch_data.Dataset):
-    def __init__(self, is_train_set=True):
+    def __init__(self, is_train_set=True,is_test_set=False):
         super().__init__()
         #定义label和0-103对应的字典（训练集中一共有104种标签）
         train_file = 'C:/Users/10983/py入门/GRUClassifier/train.pb'
@@ -19,7 +19,13 @@ class CodeDataset(torch_data.Dataset):
         self.train_label = self.train_reader.loc[:, 'label']
         self.train_label_list = sorted(self.train_label.unique())
         
-        filename = 'C:/Users/10983/py入门/GRUClassifier/train.pb' if is_train_set else 'C:/Users/10983/py入门/GRUClassifier/valid.pb'
+        
+        if is_test_set:
+            filename='C:/Users/10983/py入门/GRUClassifier/test.pb'
+        elif is_train_set:
+            filename='C:/Users/10983/py入门/GRUClassifier/train.pb'
+        else:
+            filename='C:/Users/10983/py入门/GRUClassifier/valid.pb'
         reader = pd.read_pickle(filename)
         self.codes_tmp = reader.loc[:, 'code'].values # 将代码列表放入codes中
         self.codes=self.cleanData(self.codes_tmp)
@@ -108,10 +114,3 @@ class CodeDataset(torch_data.Dataset):
             device=torch.device('cuda:0')
             tt=tt.to(device)
         return tt 
-
-'''
-if __name__=='__main__':
-    CD=CodeDataset()
-    print(CD.dicnum)
-    print(CD.label_num)
-'''

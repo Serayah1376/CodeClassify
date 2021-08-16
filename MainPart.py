@@ -14,19 +14,21 @@ from Preparing_Data import CodeDataset
 import RNNClassifier as RNN
 from train import Train_Valid
 
+
 torch.cuda.manual_seed_all(123)#设置随机数种子，使每一次初始化数值都相同
 
 #parameters
 HIDDEN_SIZE=256
 BATCH_SIZE=16 #改为8试一下
 N_LAYER=2  
-N_EPOCHS=100
+N_EPOCHS=40
 USE_GPU=True #使用GPU
 gamma=0.1
 max_len=229   #代码最大长度（95%分词后的代码低于此长度）
 
 trainset=CodeDataset(is_train_set=True)
 validset =CodeDataset(is_train_set=False)
+testset=CodeDataset(is_train_set=False,is_test_set=True)
 
 #将分词后的codes进行padding：取每个batch的列表中的最大长度作为填充目标长度
 def make_tensors(batch):
@@ -60,6 +62,8 @@ def make_tensors(batch):
 train_loader=DataLoader(trainset,batch_size=BATCH_SIZE,shuffle=False,collate_fn=make_tensors)
 #验证集
 valid_loader=DataLoader(validset,batch_size=BATCH_SIZE,shuffle=False,collate_fn=make_tensors)
+#测试集
+test_loader=DataLoader(testset,batch_size=BATCH_SIZE,shuffle=False,collate_fn=make_tensors)
 
 #得到标签的种类数，决定模型最终输出维度的大小
 #训练集中的类别是最全的，故使用训练集的label_num
@@ -85,15 +89,24 @@ start=time.time()
 print('Training for %d epochs...' % N_EPOCHS)
 
 
-train_valid=Train_Valid(classifier, train_loader, valid_loader, start, trainset, validset)
-acc_list,loss_list=train_valid.train()
+train_valid=Train_Valid(classifier, train_loader, valid_loader,test_loader, start, trainset, validset,testset)
+valid_acc_list,test_acc_list,loss_list=train_valid.train()
 
 #绘图部分看准确率的变化
-epoch=np.arange(1,len(acc_list)+1,1)
-acc_list=np.array(acc_list)
-plt.plot(epoch,acc_list)
+epoch=np.arange(1,len(valid_acc_list)+1,1)
+valid_acc_list=np.array(valid_acc_list)
+plt.plot(epoch,valid_acc_list)
 plt.xlabel('Epoch')
 plt.ylabel('Valid_Accuracy')
+plt.grid()
+plt.show()
+
+#绘图部分看准确率的变化
+epoch=np.arange(1,len(test_acc_list)+1,1)
+test_acc_list=np.array(test_acc_list)
+plt.plot(epoch,test_acc_list)
+plt.xlabel('Epoch')
+plt.ylabel('Test_Accuracy')
 plt.grid()
 plt.show()
 
