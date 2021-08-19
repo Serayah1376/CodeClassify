@@ -18,10 +18,10 @@ class Train_Valid():
         self.trainset=trainset
         self.validset=validset
         self.testset=testset
-        self.gamma=0.1
+        #self.gamma=0.95
         self.criterion=torch.nn.CrossEntropyLoss()
         self.optimizer=torch.optim.Adam(self.model.parameters(),lr=0.001)
-        self.scheduler=torch.optim.lr_scheduler.ExponentialLR(self.optimizer,self.gamma, last_epoch=-1)
+        #self.scheduler=torch.optim.lr_scheduler.ExponentialLR(self.optimizer,self.gamma, last_epoch=-1)
         
 
     def train(self):
@@ -31,7 +31,7 @@ class Train_Valid():
         loss_list=[]
         #min_loss=100  #初始化一个最小损失值
         best_acc=0
-        for epoch in range(1,41): 
+        for epoch in range(1,21): 
             total_loss=0
             for i,(inputs,target) in enumerate(self.trainloader,1):
                 self.optimizer.zero_grad()
@@ -42,7 +42,7 @@ class Train_Valid():
                 #self.scheduler.step()
             
                 total_loss+=loss.item()
-                if i%500==0:
+                if i%200==0:
                     print(f'[{self.time_since(self.start)}] Epoch {epoch}',end='')
                     print(f'[{i * len(inputs)}/{len(self.trainset)}]',end='')
                     print(f'loss={total_loss/(i*len(inputs))}')
@@ -83,7 +83,7 @@ class Train_Valid():
                 correct+=pred.eq(target.view_as(pred)).sum().item()
                 
                 valid_total_loss+=valid_loss.item()
-                if i%100==0:
+                if i%50==0:
                     print(f'[{self.time_since(self.start)}] Epoch {epoch}',end='')
                     print(f'[{i * len(inputs)}/{len(self.validset)}]',end='')
                     print(f'valid_loss={valid_total_loss/(i*len(inputs))}')
@@ -107,7 +107,7 @@ class Train_Valid():
                 correct+=pred.eq(target.view_as(pred)).sum().item()
                 
                 test_total_loss+=test_loss.item()
-                if i%100==0:
+                if i%50==0:
                     print(f'[{self.time_since(self.start)}] Epoch {epoch}',end='')
                     print(f'[{i * len(inputs)}/{len(self.testset)}]',end='')
                     print(f'test_loss={test_total_loss/(i*len(inputs))}')

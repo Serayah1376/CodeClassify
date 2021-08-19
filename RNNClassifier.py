@@ -16,7 +16,7 @@ class RNNClassifier(torch.nn.Module):
     output_size:N_LABEL
     n_layers=N_LAYER
     '''
-    def __init__(self,input_size,hidden_size,output_size,n_layers=1,bidirectional=False):
+    def __init__(self,input_size,hidden_size,output_size,n_layers=1,bidirectional=True):
         super(RNNClassifier,self).__init__()
         self.input_size=input_size
         self.hidden_size=hidden_size
@@ -54,8 +54,9 @@ class RNNClassifier(torch.nn.Module):
         else:
             hidden_cat=hidden[-1]
         fc1_output=self.fc1(hidden_cat)
-        fc_output=self.fc2(fc1_output)
-        return fc_output  #[4,104]
+        #fc2_output=self.fc2(fc1_output)
+        #fc_output=self.fc3(fc2_output)
+        return fc1_output  #[4,104]
     
     #模型创建
     def build(self):
@@ -64,8 +65,9 @@ class RNNClassifier(torch.nn.Module):
         #GRU层
         self.gru=torch.nn.GRU(self.hidden_size,self.hidden_size,self.n_layers,bidirectional=self.bidirectional)
         #线性层
-        self.fc1=torch.nn.Linear(self.hidden_size*self.n_directions, 160)
-        self.fc2=torch.nn.Linear(160,104)
+        self.fc1=torch.nn.Linear(self.hidden_size*self.n_directions, 104)
+        #self.fc2=torch.nn.Linear(200,150)
+        #self.fc3=torch.nn.Linear(150,104)
 
     #判断是否放到显卡上
     def create_tensor(self,t):

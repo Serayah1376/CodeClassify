@@ -19,11 +19,11 @@ torch.cuda.manual_seed_all(123)#设置随机数种子，使每一次初始化数
 
 #parameters
 HIDDEN_SIZE=256
-BATCH_SIZE=16 #改为8试一下
-N_LAYER=2  
-N_EPOCHS=40
+BATCH_SIZE=64 #########
+N_LAYER=2  ###########
+N_EPOCHS=20
 USE_GPU=True #使用GPU
-gamma=0.1
+#gamma=0.1
 max_len=229   #代码最大长度（95%分词后的代码低于此长度）
 
 trainset=CodeDataset(is_train_set=True)
@@ -31,25 +31,33 @@ validset =CodeDataset(is_train_set=False)
 testset=CodeDataset(is_train_set=False,is_test_set=True)
 
 #将分词后的codes进行padding：取每个batch的列表中的最大长度作为填充目标长度
+#试一试如果长度长截取后面部分
 def make_tensors(batch):
     codes=[item[0] for item in batch]
     labels=[item[1] for item in batch]
     list2=[]
     for s in codes:
         feature=[]
-        #list1=[trainset.word2index[word] if trainset.word2index.get(word)!=None else 0 for word in s]
-        for word in s:
-            if word in trainset.word2index:
-                feature.append(trainset.word2index[word])
-            else:
-                feature.append(trainset.word2index["<unk>"])
-            #限制句子的最大长度，超出部分直接截去（这里选择截去结尾部分）
-            if len(feature)==max_len:
-                break
-            
-        #padding:填充1使长度相等
-        need_add=max_len-len(feature)
-        feature=feature + [trainset.word2index["<pad>"]] * need_add
+        #如果长度大于最大长度，则截去前面部分
+        if len(s)>max_len:
+            latter_begin_index=len(s)-max_len
+            n=latter_begin_index
+            while n<len(s):
+                word=s[n]
+                if word in trainset.word2index:
+                    feature.append(trainset.word2index[word])
+                else:
+                    feature.append(trainset.word2index["<unk>"])
+                n+=1
+        else:
+            for word in s:
+                if word in trainset.word2index:
+                    feature.append(trainset.word2index[word])
+                else:
+                    feature.append(trainset.word2index["<unk>"])
+            #padding:填充1使长度相等
+            need_add=max_len-len(feature)
+            feature=feature + [trainset.word2index["<pad>"]] * need_add
         list2.append(feature)
     #将代码向量转化为张量
     seq_tensor=torch.LongTensor(list2)
